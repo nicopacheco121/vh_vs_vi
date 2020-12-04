@@ -4,7 +4,10 @@ import keys
 import numpy as np
 import sqlDB
 import time
+from sqlalchemy import create_engine
 import threading
+import datetime as dt
+
 
 def options(ticker,key=keys.TOKEN_TD):
     endpoint = "https://api.tdameritrade.com/v1/marketdata/chains"
@@ -13,6 +16,7 @@ def options(ticker,key=keys.TOKEN_TD):
     return r.json()
 
 
+#NO SE ESTA USANDO
 def optionsTotal(lista,desde=None,hasta=None,nombre="optiones_vi"):
     start_time = time.time()
     diccionario = {}
@@ -95,8 +99,8 @@ def optionsDF(chain):
         tabla.columns = ['symbol_opc', 'strike', 'TTM', 'type', 'bid', 'ask', 'last', 'IV', 'openInt', 'theor',
                          'delta', 'gamma', 'theta', 'vega', 'rho', 'ITM']
 
-        tabla['symbol'] = chain['symbol']
-        tabla = tabla.set_index('symbol')
+        tabla['ticker'] = chain['symbol']
+        tabla = tabla.set_index('ticker')
 
     except:
         tabla = pd.DataFrame()
@@ -152,3 +156,37 @@ def tablaCadenas(tickers, nombre="opciones_",key=keys.TOKEN_TD):
     print("--- %s seconds ---" % (time.time() - start_time))
 
     return noEncontrados
+
+def vi_opciones(tabla_cadenas,vencimiento_desde,vencimiento_hasta,porc_itm,porc_otm,lista_precios):
+
+    sql_engine = create_engine(keys.DB_STOCKS)
+    sql_conn = sql_engine.connect()
+
+    # ESTOY ACA VIENDO LA MEJOR FORMA DE FILTRAR LOS CONTRATOS DE OPCIONES
+
+    # Filtro contratos por vencimiento
+    q = f"""SELECT * FROM `{tabla_cadenas}` WHERE \
+        `TTM` >= {vencimiento_desde} and `TTM` <= {vencimiento_hasta}"""
+    #cadenas = pd.read_sql(q,con=sql_conn)
+
+    # Traigo precios de alpaca
+    # ejecutar_alpaca = fmp.precio_alpaca(tickersOpciones,'alpaca',keys.TOKEN_ALPACA_PUBLIC,keys.TOKEN_ALPACA_SECRET)
+
+    q = f"""SELECT * FROM `{lista_precios}`"""
+    precios = pd.read_sql(q,con=sql_conn)
+    precios = precios.loc [: , ['symbol','price']]
+    precios.set_index('symbol',inplace=True)
+    precios = precios.to_json(orient='columns')
+
+
+    return precios
+
+if __name__ == "__main__":
+    print(vi_opciones(tabla_cadenas='opciones_2020-11-12',vencimiento_desde=0,vencimiento_hasta=40,
+                      porc_itm=4,porc_otm=5,lista_precios = 'alpaca2020-11-21'))
+
+
+
+
+
+

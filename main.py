@@ -33,9 +33,6 @@ FALTA
 - Filtrar datos que no salieron bien o no sirven (vh y vi mayores a cierto numero o negativas)
 - ver spread de opciones
 - agregar ATM ITM etc (tambien podria filtrar por ultimo precio y  una % de precio para arriba o abajo)
-
-
-
 """
 
 import pandas as pd
@@ -55,16 +52,16 @@ import fmp
 pd.options.display.max_columns=50
 
 """   / / / CONEXION DB / / /   """
+#Se debe conectar a una DB
+
 sql_engine = create_engine(keys.DB_STOCKS)
 sql_conn = sql_engine.connect()
-
 
 
 
 """   / / / TABLA FINVIZ DE STOCKS OPCIONABLES / / /   """
 #data = finviz.crearTablaFinviz(nombre="finviz",pags=range(250))
 #print(data.info())
-
 
 
 
@@ -76,27 +73,18 @@ sql_conn = sql_engine.connect()
 
 
 # Consulto tickers de finviz
-"""q = 'SELECT Ticker FROM finviz'
-tickers = pd.read_sql(q, con=sql_conn)
-tickersFinviz = list(tickers["Ticker"])
-"""
-#print(tickersFinviz)
-#print(len(tickersFinviz))
+# tickersFinviz = sqlDB.consulta_tickers(tabla = 'finviz')
+# print(tickersFinviz)
 
 
-"""# Genero la tabla por primera vez
-tablaPriceTickers = fmp.getInfoTotal(tercero,keys.TOKEN_FMP,nombre="poner_nombre_tabla")
-print(tablaPriceTickers)
-print(len(tablaPriceTickers))
-"""
+# Genero la tabla por primera vez. Este proceso puede tardar mas de 10 minutos
+# tablaPriceTickers = fmp.getInfoTotal(tickersFinviz,keys.TOKEN_FMP,nombre="poner_nombre_tabla")
+# print(tablaPriceTickers)
+
 
 # Traigo solo los tickers de FMP
-"""q = 'SELECT DISTINCT Ticker FROM fmp_total'
-tickersFMP = pd.read_sql(q, con=sql_conn)
-tickersFMP = list(tickersFMP["Ticker"])
-#tickers = set(list(tickers["Ticker"]))
-print(tickersFMP)
-print(len(tickersFMP))"""
+# tickersFMP = sqlDB.consulta_tickers_unicos('fmp_total')
+# print(tickersFMP)
 
 # Comparo con los tickers de finviz y armo una lista de los que no se subieron a la tabla
 """faltan = []
@@ -112,54 +100,82 @@ print(len(faltan))
 
 """   / / / TABLA DE DATOS ESTADISICA / / /   """
 
-
 # Hago todas las cuentas estadisticas
-""" Importante en la función colocar el nombre de su DB donde guardan la data """
+""" Importante en la función colocar el nombre de su tabla donde guardan la data """
 
-"""ejecutar_vh = fmp.vol_his(nombreTablaData="fmp_total",nombre="poner_nombre_tabla")
-print(ejecutar_vh)"""
+# ejecutar_vh = fmp.vol_his(nombreTablaData="fmp_total",nombre="poner_nombre_tabla")
+# print(ejecutar_vh)
 
 
-"""   / / / BASE DE DATOS OPCIONES / / /   """
+"""   / / / TABLA DE DATOS OPCIONES / / /   """
 
 # FILTRO ACTIVOS
-precioMax = 100
-fechaMax = '2018-11-03'
-vhMax = 0.5
+precioMax = 100 #precio maximo de la accion
+fechaMax = '2018-11-03' #fecha maxima de salida al mercado
+vhMax = 0.5 #volatilidad historica maxima
 nombreTablaVH = "tabla_vh"
+nombreTablaFinviz = 'finviz'
 
 q = f"""SELECT * FROM `{nombreTablaVH}` WHERE \
     {nombreTablaVH}.lastPrice <= {precioMax} and \
     {nombreTablaVH}.vh <= {vhMax} and \
     {nombreTablaVH}.ticker IN \
-    (SELECT Ticker FROM `finviz` WHERE `IPO_Date` <= '{fechaMax}')"""
+    (SELECT Ticker FROM `{nombreTablaFinviz}` WHERE `IPO_Date` <= '{fechaMax}')"""
 
-tickersFiltrados = pd.read_sql(q,con=sql_conn)
-tickersFiltrados = list(tickersFiltrados.ticker)
+# Descomentar para ejecutar la consulta
+# tickersFiltrados = pd.read_sql(q,con=sql_conn)
+# tickersFiltrados = list(tickersFiltrados.ticker)
 
-print(tickersFiltrados)
-print(len(tickersFiltrados))
-
-q = 'SELECT DISTINCT symbol FROM `opciones_2020-11-12`'
-tickersFMP = pd.read_sql(q, con=sql_conn)
-tickersFMP = list(tickersFMP["symbol"])
-#tickers = set(list(tickers["Ticker"]))
-print(tickersFMP)
-print(len(tickersFMP))
+# print(tickersFiltrados)
+# print(len(tickersFiltrados))
 
 
 # TABLA DE CADENA DE OPCIONES TOTAL
-"""cadenasTotales = td.tablaCadenas(tickers = tickersFiltrados,nombre="asdfasdf")
-print(cadenasTotales)"""
+""" Extrae la informacion de las cadenas de opciones y lo sube a una tabla. Demora mas de 10 minutos """
+# cadenasTotales = td.tablaCadenas(tickers = tickersFiltrados,nombre="asdfasdf")
+# print(cadenasTotales)
+
+
+"""   / / / TABLA DE VOLATILIDAD IMPLICITA DE OPCIONES / / /  """
+
+# PIDO EL ULTIMO PRECIO DE TICKERS PARA FILTRAR STRIKES
+
+q = 'SELECT DISTINCT symbol FROM `opciones_2020-11-12`'
+#tickersOpciones = pd.read_sql(q, con=sql_conn)
+#tickersOpciones = list(tickersOpciones["symbol"])
+#tickers = set(list(tickers["Ticker"]))
+
+
+# estoy probando si queda bien guardada la tabla de opciones con ticker en vez de symbol, si queda ok voy a poner la funcion en la query anterior asi saco algo mas de codigo
+
+
+"""tickersOpciones = sqlDB.consulta_tickers_unicos(tabla = 'opciones_2020-11-12')
+
+print(tickersOpciones)
+print(len(tickersOpciones))"""
+
+# CONSULTO PRECIO ACTUAL DE TICKERS PARA VER ATM ITM OTM
 
 
 
-# FILTRO CONTRATOS
-desde = 90
-hasta = 150
+# ACA TAMBIEN CAMBIÉ SYMBOL POR TICKER, EN ALPACA
 
-#cadenaOpcionesTotal = td.optionsTotal(lista=listaTickers,desde=desde,hasta=hasta,nombre=vi_vh_otro)
-#print(cadenaOpcionesTotal)
+
+# PARAMETROS PARA FILTRAR LOS CONTRATOS
+vencimiento_desde = 90
+vencimiento_hasta = 150
+porcentaje_itm = 0.1 #cuan alejado del strike hacia itm
+porcentaje_atm = 0.1 #cuan alejado del strike hacia atm
+
+
+# CALCULO VI DE OPCIONES EN BASE A LOS PARAMETROS
+""" Primero se filtra por vencimiento, luego comparo precio actual con strike y elimino segun porcentaje itm y otm,
+    a los contratos que quedan le calculo la VI y esto queda guardado en una nueva tabla """
+# lo que t engo que hacer aca es primero filtrar por vencimiento, luego traigo y por cada ticker, comparar el precio actual en alpaca
+# vs el precio del contrato para dejarlo o eliminarlo. los contratos que dejo le saco la VI y esto lo meto en una tabla nueva
+# la tabla nueva va a ser symbol / vi
+# con esto ya despues puedo filtrar en base a VH > VI
+
 
 
 

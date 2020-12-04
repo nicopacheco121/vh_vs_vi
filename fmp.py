@@ -211,6 +211,101 @@ def vol_his(nombreTablaData, nombre="tabla_vh"):
     return lista_errores
 
 
+""" ALPACA - PRECIO DIARIO """
+def bajada_alpaca(symbol,public,secret,timeframe='1D',limit=1):
+
+    url = f'https://data.alpaca.markets/v1/bars/{timeframe}'
+    headers = {'APCA-API-KEY-ID': public, 'APCA-API-SECRET-KEY': secret}
+    params = {'symbols' : symbol, 'limit': limit}
+
+    r = requests.get(url=url,headers=headers , params=params)
+    js = r.json()
+
+    return js
+
+def listaActivos(lista):
+    """ Recibe una lista de activos y la separa en varias listas de a 200 tickers """
+    listas = []
+    for i in range (len(lista)//200+1):
+        listas.append(lista[i*200 : (i+1)*200])
+
+    return listas
+
+def sublist_to_string(listas):
+    """ Recibe un listado de listas de tickers y por cada lista hace un string con los ticker separados por comas """
+
+    res = []
+    for i in range(len(listas)):
+        res.append(','.join(listas[i]))
+    return res
+
+def worker_alpaca(tickers,nombre,public,secret):
+
+    precios = bajada_alpaca(tickers[0], public=public, secret=secret)  # bajo los precios
+    tickers_en_lista = tickers[0].split(sep=",")
+    lista_tickers = []
+    lista_precios = []
+
+    for ticker in tickers_en_lista:
+        print(ticker, end=' ')
+
+        try:
+            precio = precios[ticker][0]['c']
+            lista_tickers.append(ticker)
+            lista_precios.append(precio)
+        except:
+            continue
+    para_df = {'ticker' : lista_tickers, 'price': lista_precios}
+    # Armo el df
+
+    df = pd.DataFrame(para_df)
+    df.set_index('ticker',inplace=True)
+    #df.columns = ['symbol','price']
+
+    if len(df) == 0:
+        print('  / / / / // / ')
+    else:
+        sqlDB.backup(df=df, nombre=nombre, if_exists="append")
+
+    return df
+
+
+def precio_alpaca(tickers,nombre,public,secret):
+    import threading
+
+    start_time = time.time()
+
+    # Creo la tabla por primera vez
+    import datetime as dt
+    hoy = str(dt.date.today())
+    nombre = nombre+hoy
+    sqlDB.tabla_alpaca(nombre=nombre)
+
+    # Seteo la lista de tickers para que quede en una sola lista, de a 200 tickers
+    tickers = listaActivos(tickers)
+    tickers = sublist_to_string(tickers)
+
+    # descargo la info y la voy subiendo a la db
+    noEncontrados = []
+    n_threads = len(tickers)
+    subs = np.array_split(tickers, n_threads) # separo en cantidad de listas segun cantidad de threads
+
+    # hilos
+    threads = []
+    for i in range(n_threads):
+        t = threading.Thread(target=worker_alpaca, args=((subs[i]),nombre,public,secret))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+    return noEncontrados
+
+
 
 
 """ CODIGO DE ALPHAVANTIGE - NO SE USA   """

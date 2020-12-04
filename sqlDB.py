@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine
 import keys
+import pandas as pd
+
 
 def connection():
 
@@ -113,4 +115,38 @@ def tabla_cadenaOpciones(nombre):
 
     sql_conn.execute(create_table)
     return "Tabla creada correctamente"
+
+def tabla_alpaca(nombre):
+    sql_conn = connection()
+
+    create_table = f"""
+        CREATE TABLE IF NOT EXISTS `{nombre}` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `symbol` varchar(20) DEFAULT '',
+        `price` float(10) DEFAULT NULL,
+        PRIMARY KEY (`id`) )"""
+
+    sql_conn.execute(create_table)
+    return "Tabla creada correctamente"
+
+
+def consulta_tickers(tabla):
+    sql_engine = create_engine(keys.DB_STOCKS)
+    sql_conn = sql_engine.connect()
+
+    q = f'SELECT Ticker FROM {tabla}'
+    resultado = pd.read_sql(q, con=sql_conn)
+    resultado = list(resultado["Ticker"])
+
+    return resultado
+
+def consulta_tickers_unicos(tabla):
+    sql_engine = create_engine(keys.DB_STOCKS)
+    sql_conn = sql_engine.connect()
+
+    q = f'SELECT DISTINCT Ticker FROM {tabla}'
+    resultado = pd.read_sql(q, con=sql_conn)
+    resultado = list(resultado["Ticker"])
+
+    return resultado
 
