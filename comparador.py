@@ -18,16 +18,16 @@ def comparar_vh_vi(nombre_vh="db_vh",nombre_vi="optiones_vi"):
     sql_conn = sql_engine.connect()
 
     # Descargo VI
-    q = f"""SELECT ticker,VI FROM `{nombre_vi}` WHERE {nombre_vi}.ticker IN (SELECT ticker FROM `{nombre_vh}`)"""
+    q = f"""SELECT * FROM `{nombre_vi}` WHERE `ticker` IN (SELECT ticker FROM `{nombre_vh}`)"""
     opcionesVI = pd.read_sql(q, con=sql_conn)
-    opcionesVI.columns = ("Ticker", "VI")
+    opcionesVI.columns = ('index',"Ticker", "VI")
 
     # DESCARGO VH
     q = f"""SELECT * FROM `{nombre_vh}` WHERE {nombre_vh}.ticker IN (SELECT ticker FROM `{nombre_vi}`)"""
     opcionesVH = pd.read_sql(q, con=sql_conn)
 
     # armo data frame completo juntando VH y VI
-    resultado = opcionesVI.copy()
+    #resultado = opcionesVI.copy()
     resultado = pd.concat([opcionesVI,opcionesVH],axis=1)
     resultado = resultado.drop(["ticker"],axis=1)
     resultado["vh"] = resultado.vh*100

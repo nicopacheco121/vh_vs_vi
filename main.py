@@ -139,53 +139,29 @@ q = f"""SELECT * FROM `{nombreTablaVH}` WHERE \
 """   / / / TABLA DE VOLATILIDAD IMPLICITA DE OPCIONES / / /  """
 
 # PIDO EL ULTIMO PRECIO DE TICKERS PARA FILTRAR STRIKES
-
 q = 'SELECT DISTINCT symbol FROM `opciones_2020-11-12`'
-#tickersOpciones = pd.read_sql(q, con=sql_conn)
-#tickersOpciones = list(tickersOpciones["symbol"])
-#tickers = set(list(tickers["Ticker"]))
-
-
-# estoy probando si queda bien guardada la tabla de opciones con ticker en vez de symbol, si queda ok voy a poner la funcion en la query anterior asi saco algo mas de codigo
-
-
-"""tickersOpciones = sqlDB.consulta_tickers_unicos(tabla = 'opciones_2020-11-12')
-
-print(tickersOpciones)
-print(len(tickersOpciones))"""
-
-# CONSULTO PRECIO ACTUAL DE TICKERS PARA VER ATM ITM OTM
-
-
-
-# ACA TAMBIEN CAMBIÉ SYMBOL POR TICKER, EN ALPACA
+# tickersOpciones = pd.read_sql(q, con=sql_conn)
+# tickersOpciones = list(tickersOpciones["symbol"])
+#
+# fmp.precio_alpaca(tickersOpciones,nombre='alpaca',public=keys.TOKEN_ALPACA_PUBLIC,secret=keys.TOKEN_ALPACA_SECRET)
 
 
 # PARAMETROS PARA FILTRAR LOS CONTRATOS
 vencimiento_desde = 90
 vencimiento_hasta = 150
-porcentaje_itm = 0.1 #cuan alejado del strike hacia itm
-porcentaje_atm = 0.1 #cuan alejado del strike hacia atm
+porcentaje_itm_otm = 10 #cuan alejado del strike hacia itm
 
 
 # CALCULO VI DE OPCIONES EN BASE A LOS PARAMETROS
-""" Primero se filtra por vencimiento, luego comparo precio actual con strike y elimino segun porcentaje itm y otm,
-    a los contratos que quedan le calculo la VI y esto queda guardado en una nueva tabla """
-# lo que t engo que hacer aca es primero filtrar por vencimiento, luego traigo y por cada ticker, comparar el precio actual en alpaca
-# vs el precio del contrato para dejarlo o eliminarlo. los contratos que dejo le saco la VI y esto lo meto en una tabla nueva
-# la tabla nueva va a ser symbol / vi
-# con esto ya despues puedo filtrar en base a VH > VI
-
-
-
+# td.vi_opciones(tabla_cadenas='opciones_2020-11-12',vencimiento_desde=vencimiento_desde,vencimiento_hasta=vencimiento_hasta,
+#                condicion_itm_otm=porcentaje_itm_otm,lista_precios='alpaca2020-12-05')
 
 
 """    / / / RESULTADO / / /   """
 # PEDIR TICKERS CON MENOR VI QUE VH
 
-#tablas = comparador.comparar_vh_vi(nombre_vh="db_vh",nombre_vi="optiones_vi")
-
-#print(tablas)
+tablas = comparador.comparar_vh_vi(nombre_vh="db_vh",nombre_vi="vi_promedio2020-12-05")
+print(tablas)
 
 
 

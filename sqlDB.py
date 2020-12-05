@@ -122,8 +122,21 @@ def tabla_alpaca(nombre):
     create_table = f"""
         CREATE TABLE IF NOT EXISTS `{nombre}` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
-        `symbol` varchar(20) DEFAULT '',
+        `ticker` varchar(20) DEFAULT '',
         `price` float(10) DEFAULT NULL,
+        PRIMARY KEY (`id`) )"""
+
+    sql_conn.execute(create_table)
+    return "Tabla creada correctamente"
+
+def tabla_vi_promedio(nombre):
+    sql_conn = connection()
+
+    create_table = f"""
+        CREATE TABLE IF NOT EXISTS `{nombre}` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `ticker` varchar(20) DEFAULT '',
+        `vi_promedio` float(10) DEFAULT NULL,
         PRIMARY KEY (`id`) )"""
 
     sql_conn.execute(create_table)
@@ -150,3 +163,5 @@ def consulta_tickers_unicos(tabla):
 
     return resultado
 
+# if __name__ == '__main__':
+#     tabla_alpaca('prueba')

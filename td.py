@@ -157,33 +157,80 @@ def tablaCadenas(tickers, nombre="opciones_",key=keys.TOKEN_TD):
 
     return noEncontrados
 
-def vi_opciones(tabla_cadenas,vencimiento_desde,vencimiento_hasta,porc_itm,porc_otm,lista_precios):
+def vi_opciones(tabla_cadenas,vencimiento_desde,vencimiento_hasta,condicion_itm_otm,lista_precios,nombre= 'vi_promedio'):
+    start_time = time.time()
 
     sql_engine = create_engine(keys.DB_STOCKS)
     sql_conn = sql_engine.connect()
 
-    # ESTOY ACA VIENDO LA MEJOR FORMA DE FILTRAR LOS CONTRATOS DE OPCIONES
+    # Creo la tabla
+    import datetime as dt
+    hoy = str(dt.date.today())
+    nombre = nombre + hoy
+    sqlDB.tabla_vi_promedio(nombre)
 
     # Filtro contratos por vencimiento
-    q = f"""SELECT * FROM `{tabla_cadenas}` WHERE \
+    q = f"""SELECT strike,IV,symbol FROM `{tabla_cadenas}` WHERE \
         `TTM` >= {vencimiento_desde} and `TTM` <= {vencimiento_hasta}"""
-    #cadenas = pd.read_sql(q,con=sql_conn)
+    cadenas = pd.read_sql(q,con=sql_conn)
 
     # Traigo precios de alpaca
-    # ejecutar_alpaca = fmp.precio_alpaca(tickersOpciones,'alpaca',keys.TOKEN_ALPACA_PUBLIC,keys.TOKEN_ALPACA_SECRET)
-
     q = f"""SELECT * FROM `{lista_precios}`"""
-    precios = pd.read_sql(q,con=sql_conn)
-    precios = precios.loc [: , ['symbol','price']]
-    precios.set_index('symbol',inplace=True)
-    precios = precios.to_json(orient='columns')
+    alpaca = pd.read_sql(q,con=sql_conn)
+    alpaca = alpaca.loc [: , ['ticker','price']]
+    precios = {}
+    for i in range(len(alpaca)):
+        ticker = alpaca.iloc[i, 0]
+        p = alpaca.iloc[i, 1]
+        precios[ticker] = p
 
 
-    return precios
+    ticker_anterior = cadenas.iloc[0,2]
+    suma_vi = 0
+    cantidad = 0
+    lista_tickers = []
+    lista_vi = []
+
+    for i in range(len(cadenas)):
+        ticker = cadenas.iloc[i, 2]
+
+        if i != 0:
+            ticker_anterior = cadenas.iloc[i-1,2]
+
+        if ticker != ticker_anterior:
+            try:
+                vi = suma_vi / cantidad
+                lista_tickers.append(ticker)
+                lista_vi.append(vi)
+            except:
+                pass
+            suma_vi = 0
+            cantidad = 0
+
+        strike = cadenas.iloc[i,0]
+        precio_actual = precios[ticker]
+        condicion = (abs(strike / precio_actual -1)) <= condicion_itm_otm
+
+        if condicion:
+
+            vi_opcion = cadenas.iloc[i,1]
+            if vi_opcion > -999:
+                suma_vi+= cadenas.iloc[i,1]
+                cantidad+= 1
+
+    diccionario_vi = {'ticker':lista_tickers,'vi_promedio':lista_vi}
+    df = pd.DataFrame(diccionario_vi)
+    df.set_index('ticker',inplace=True)
+
+    sqlDB.backup(df=df, nombre=nombre, if_exists="append")
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+    return df
 
 if __name__ == "__main__":
-    print(vi_opciones(tabla_cadenas='opciones_2020-11-12',vencimiento_desde=0,vencimiento_hasta=40,
-                      porc_itm=4,porc_otm=5,lista_precios = 'alpaca2020-11-21'))
+    print(vi_opciones(tabla_cadenas='opciones_2020-11-12',vencimiento_desde=20,vencimiento_hasta=40,
+                      condicion_itm_otm=10,lista_precios = 'alpaca2020-11-21'))
 
 
 

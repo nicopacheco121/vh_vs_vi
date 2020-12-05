@@ -259,8 +259,8 @@ def worker_alpaca(tickers,nombre,public,secret):
     # Armo el df
 
     df = pd.DataFrame(para_df)
+    df.columns = ['ticker','price']
     df.set_index('ticker',inplace=True)
-    #df.columns = ['symbol','price']
 
     if len(df) == 0:
         print('  / / / / // / ')
